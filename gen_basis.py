@@ -29,7 +29,7 @@ def measure_width_hz(ppm, spectrum_data):
     return tNAA_FWHM_width_hz
 
 #代謝物濃度
-metabo_names = ['Ala','Asp','Cr','GABA','Glc','Gln','Glu','GPC','PCh','Lac','mI','NAA','NAAG','Scyllo','Tau']#GSH = PCh?
+metabo_names = ['Ala','Asp','Cr','GABA','Glc','Gln','Glu','GPC','PCh','Lac','mI','NAA','NAAG','Scyllo','Tau']
 brain_metabos_conc_lower = np.array([0.1,1.0,4.5,1.0,1.0,3.0,6.0,0.5,0.5,0.2,4.0,7.5,0.5,0,2.0])
 brain_metabos_conc_upper = np.array([1.5,2.0,10.5,2.0,2.0,6.0,12.5,2.0,2.0,1.0,9.0,17,2.5,0,6.0])
 #var_brain_metabos_conc_set = rdm.uniform(brain_metabos_conc_lower,brain_metabos_conc_upper)
