@@ -394,33 +394,10 @@ for steps in tqdm(range(N_specta)):
         plt.savefig(sav_filename)#Why I can't save it into sub folder
         '''
     
-    '''
-    # For huge generate
     np.savez(os.path.join(working_dir,'gen_folder', f'generate_basis_{steps}'), X=add_noise_crop_filted_sdata, Y=pure_metabo_basis, ppm = crop_ppm)
     np.savez(os.path.join(working_dir,'gen_folder','other_parameters' ,f'other_parameters_{steps}'), var_MM_amp = var_MM_amp, var_boarden_t2 = var_boarden_t2, var_zero_shift= var_zero_shift, var_AWGN_db = var_AWGN_db)
     brain_betabo_conc_table_df.to_pickle(os.path.join(working_dir,'gen_folder','brain_betabo_conc_table_df',f'brain_betabo_conc_table_df_{steps}'))
-    MM_table_df.to_pickle(os.path.join(working_dir,'gen_folder','MM_table_df',f'MM_table_df_{steps}'))
-    np.savez(os.path.join(working_dir,'gen_folder','mean_and_std' ,f'mean_and_std{steps}'), mean = in_mean, in_std = in_std)
-    '''
-    '''
-    # NO NORMALIZED BACKUP
-    np.savez(os.path.join(working_dir,'NONORM_gen_folder', f'generate_basis_{steps}'), X=add_noise_crop_filted_sdata, Y=pure_metabo_basis, ppm = crop_ppm)
-    np.savez(os.path.join(working_dir,'NONORM_gen_folder','other_parameters' ,f'other_parameters_{steps}'), var_MM_amp = var_MM_amp, var_boarden_t2 = var_boarden_t2, var_zero_shift= var_zero_shift, var_AWGN_db = var_AWGN_db)
-    brain_betabo_conc_table_df.to_pickle(os.path.join(working_dir,'NONORM_gen_folder','brain_betabo_conc_table_df',f'brain_betabo_conc_table_df_{steps}'))
-    MM_table_df.to_pickle(os.path.join(working_dir,'NONORM_gen_folder','MM_table_df',f'MM_table_df_{steps}'))    
-    '''
-    '''
-    # NO NORMALIZED BACKUP
-    np.savez(os.path.join(working_dir,'NONORM_42ppm_gen_folder', f'generate_basis_{steps}'), X=add_noise_crop_filted_sdata, Y=pure_metabo_basis, ppm = crop_ppm)
-    np.savez(os.path.join(working_dir,'NONORM_42ppm_gen_folder','other_parameters' ,f'other_parameters_{steps}'), var_MM_amp = var_MM_amp, var_boarden_t2 = var_boarden_t2, var_zero_shift= var_zero_shift, var_AWGN_db = var_AWGN_db)
-    brain_betabo_conc_table_df.to_pickle(os.path.join(working_dir,'NONORM_42ppm_gen_folder','brain_betabo_conc_table_df',f'brain_betabo_conc_table_df_{steps}'))
-    MM_table_df.to_pickle(os.path.join(working_dir,'NONORM_42ppm_gen_folder','MM_table_df',f'MM_table_df_{steps}'))    
-    '''
-    # NO NORMALIZED _ less noise
-    np.savez(os.path.join(working_dir,'NONORM_42ppm_lesssnr_gen_folder', f'generate_basis_{steps}'), X=add_noise_crop_filted_sdata, Y=pure_metabo_basis, ppm = crop_ppm)
-    np.savez(os.path.join(working_dir,'NONORM_42ppm_lesssnr_gen_folder','other_parameters' ,f'other_parameters_{steps}'), var_MM_amp = var_MM_amp, var_boarden_t2 = var_boarden_t2, var_zero_shift= var_zero_shift, var_AWGN_db = var_AWGN_db)
-    brain_betabo_conc_table_df.to_pickle(os.path.join(working_dir,'NONORM_42ppm_lesssnr_gen_folder','brain_betabo_conc_table_df',f'brain_betabo_conc_table_df_{steps}'))
-    MM_table_df.to_pickle(os.path.join(working_dir,'NONORM_42ppm_lesssnr_gen_folder','MM_table_df',f'MM_table_df_{steps}'))    
+    MM_table_df.to_pickle(os.path.join(working_dir,'gen_folder','MM_table_df',f'MM_table_df_{steps}'))    
     if steps == 0:
         #np.savez(os.path.join(working_dir,'base_basis_set'),data = base_basis_set)
         np.savez(os.path.join(working_dir,'42ppm_base_basis_set'),data = base_basis_set)
