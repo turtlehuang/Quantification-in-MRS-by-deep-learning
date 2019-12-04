@@ -34,7 +34,7 @@ brain_metabos_conc_lower = np.array([0.1,1.0,4.5,1.0,1.0,3.0,6.0,0.5,0.5,0.2,4.0
 brain_metabos_conc_upper = np.array([1.5,2.0,10.5,2.0,2.0,6.0,12.5,2.0,2.0,1.0,9.0,17,2.5,0,6.0])
 #var_brain_metabos_conc_set = rdm.uniform(brain_metabos_conc_lower,brain_metabos_conc_upper)
 
-N_specta = 50000
+N_specta = 1
 
 SHUFFLE_var_brain_metabos_conc_set = np.zeros([len(metabo_names), N_specta], dtype=np.float)
 for i in range(len(metabo_names)):
