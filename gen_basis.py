@@ -28,13 +28,14 @@ def measure_width_hz(ppm, spectrum_data):
     tNAA_FWHM_width_hz = round(123.177*tNAA_FWHM_width_ppm, 3)
     return tNAA_FWHM_width_hz
 
+
 #代謝物濃度
-metabo_names = ['Ala','Asp','Cr','GABA','Glc','Gln','Glu','GPC','PCh','Lac','mI','NAA','NAAG','Scyllo','Tau']
+metabo_names = ['Ala','Asp','Cr','GABA','Glc','Gln','Glu','GPC','PCh','Lac','mI','NAA','NAAG','Scyllo','Tau']#GSH = PCh?
 brain_metabos_conc_lower = np.array([0.1,1.0,4.5,1.0,1.0,3.0,6.0,0.5,0.5,0.2,4.0,7.5,0.5,0,2.0])
 brain_metabos_conc_upper = np.array([1.5,2.0,10.5,2.0,2.0,6.0,12.5,2.0,2.0,1.0,9.0,17,2.5,0,6.0])
 #var_brain_metabos_conc_set = rdm.uniform(brain_metabos_conc_lower,brain_metabos_conc_upper)
 
-N_specta = 1
+N_specta = 10
 
 SHUFFLE_var_brain_metabos_conc_set = np.zeros([len(metabo_names), N_specta], dtype=np.float)
 for i in range(len(metabo_names)):
@@ -63,8 +64,91 @@ for i in range(len(FWHM)):
 
 print('SHUFFLE_var_FWHM_set',SHUFFLE_var_FWHM_set.shape)
 
+##########################################################################################
+# 讀檔案前置作業
+#############Load file#############
 
-#N_specta = 50000
+working_dir = os.getcwd()
+#basis_filename = 'GAVA_press_te35_3T_test.basis'#16 kinds of metabo
+basis_filename = 'press_te30_3t_01a.basis'#15 kinds of metabo
+#basis_filename = 'gamma_press_te40_127mhz_013.basis'
+
+basis_path = os.path.join(working_dir, basis_filename)
+f_basis = open(basis_path,'r')
+BASIS = f_basis.read()
+###############Read basis info####################
+
+SPLIT_BASIS = BASIS.split()
+indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "METABO"]
+NMUSED_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "$NMUSED"]
+conc_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "CONC"]
+ISHIFT_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "ISHIFT"]
+PPMAPP_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "PPMAPP"]
+
+BADELT = np.array(SPLIT_BASIS[SPLIT_BASIS.index('BADELT')+2].split(","))[0].astype(float)
+
+###########################################################################
+basis_title = []
+for i in range(len(indices)):
+    idx = indices[i]
+    #print(SPLIT_BASIS[idx:idx+3],i)
+    meta_bolite_title = SPLIT_BASIS[idx:idx+3]
+    basis_title.append(meta_bolite_title)#拿每種metabo的名字
+###########################################################################
+data_idx = NMUSED_indices
+basis_set = []
+for i in range(len(data_idx)):
+    if (i <len(data_idx)-1):
+        idx = data_idx[i+1]
+        meta_bolite_basis = SPLIT_BASIS[idx-4096*2:idx]
+        basis_set.append(meta_bolite_basis)#拿每種metabo的basis
+        #print("i",i)
+    else:
+        idx = len(SPLIT_BASIS)
+        meta_bolite_basis = SPLIT_BASIS[idx-4096*2:idx]
+        #print("i final",i)        
+        basis_set.append(meta_bolite_basis)
+basis_set = np.array(basis_set)#shape = Nx(sample points*2), N = number of metabo
+
+con_set = []
+for i in range(len(conc_indices)):
+    idx = SPLIT_BASIS[conc_indices[i]+2]
+    idx = idx.split(",")
+    con_set.append(idx[0])#拿種每種metabo 的濃度 concetraition
+con_set = np.array(con_set).astype(float)
+
+###########Config PPM############
+sample_point = int(SPLIT_BASIS[SPLIT_BASIS.index("NDATAB")+2])#NDATAB =
+BW = 1/BADELT#Hz, for GAVA_press_te35_3T_test
+B = float((SPLIT_BASIS[SPLIT_BASIS.index("HZPPPM")+2]).split(",")[0])#3T = 3*42.58= 127MHz 
+ppm_length = BW/B#16.xx ppm
+ppm_center = 4.7
+min_bound = ppm_center - (ppm_length)/2
+max_bound = ppm_center + (ppm_length)/2
+ppm = np.linspace(min_bound, max_bound, sample_point)
+ppm = ppm[::-1]#reverse
+
+##########################################################################################
+##############################設定一下dump的路徑########################################
+
+dump_folder_name = 'yayaya'
+dump_folder_path = os.path.join(working_dir,dump_folder_name)
+
+if not os.path.isdir(dump_folder_path):
+    os.makedirs(dump_folder_path)
+other_parameters_path = os.path.join(dump_folder_path,'other_parameters')
+brain_betabo_conc_table_df_path = os.path.join(dump_folder_path,'brain_betabo_conc_table_df')
+MM_table_df_path = os.path.join(dump_folder_path,'MM_table_df')
+####如過沒有這些目錄 就建起來###
+if not os.path.isdir(other_parameters_path):
+    os.makedirs(other_parameters_path)
+if not os.path.isdir(brain_betabo_conc_table_df_path):
+    os.makedirs(brain_betabo_conc_table_df_path)
+if not os.path.isdir(MM_table_df_path):
+    os.makedirs(MM_table_df_path)
+
+##############################設定一下dump的路徑########################################
+
 for steps in tqdm(range(N_specta)):
     var_AU_set = []
     var_brain_metabos_conc_set = []
@@ -94,68 +178,9 @@ for steps in tqdm(range(N_specta)):
     var_zero_shift = rdm.randint(-5,5)
     #AWGNoise db parameter
     #var_AWGN_db = rdm.randint(5,15)
-    var_AWGN_db = rdm.randint(13,15)
-    #############Load file#############
-    
-    working_dir = os.getcwd()
-    #basis_filename = 'GAVA_press_te35_3T_test.basis'#16 kinds of metabo
-    basis_filename = 'press_te30_3t_01a.basis'#15 kinds of metabo
-    #basis_filename = 'gamma_press_te40_127mhz_013.basis'
-    
-    basis_path = os.path.join(working_dir, basis_filename)
-    f_basis = open(basis_path,'r')
-    BASIS = f_basis.read()
-    ###############Read basis info####################
-    
-    SPLIT_BASIS = BASIS.split()
-    indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "METABO"]
-    NMUSED_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "$NMUSED"]
-    conc_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "CONC"]
-    ISHIFT_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "ISHIFT"]
-    PPMAPP_indices = [i for i, x in enumerate(SPLIT_BASIS) if x == "PPMAPP"]
-    
-    BADELT = np.array(SPLIT_BASIS[SPLIT_BASIS.index('BADELT')+2].split(","))[0].astype(float)
-    
-    ###########################################################################
-    basis_title = []
-    for i in range(len(indices)):
-        idx = indices[i]
-        #print(SPLIT_BASIS[idx:idx+3],i)
-        meta_bolite_title = SPLIT_BASIS[idx:idx+3]
-        basis_title.append(meta_bolite_title)#拿每種metabo的名字
-    ###########################################################################
-    data_idx = NMUSED_indices
-    basis_set = []
-    for i in range(len(data_idx)):
-        if (i <len(data_idx)-1):
-            idx = data_idx[i+1]
-            meta_bolite_basis = SPLIT_BASIS[idx-4096*2:idx]
-            basis_set.append(meta_bolite_basis)#拿每種metabo的basis
-            #print("i",i)
-        else:
-            idx = len(SPLIT_BASIS)
-            meta_bolite_basis = SPLIT_BASIS[idx-4096*2:idx]
-            #print("i final",i)        
-            basis_set.append(meta_bolite_basis)
-    basis_set = np.array(basis_set)#shape = Nx(sample points*2), N = number of metabo
-    
-    con_set = []
-    for i in range(len(conc_indices)):
-        idx = SPLIT_BASIS[conc_indices[i]+2]
-        idx = idx.split(",")
-        con_set.append(idx[0])#拿種每種metabo 的濃度 concetraition
-    con_set = np.array(con_set).astype(float)
-    
-    ###########Config PPM############
-    sample_point = int(SPLIT_BASIS[SPLIT_BASIS.index("NDATAB")+2])#NDATAB =
-    BW = 1/BADELT#Hz, for GAVA_press_te35_3T_test
-    B = float((SPLIT_BASIS[SPLIT_BASIS.index("HZPPPM")+2]).split(",")[0])#3T = 3*42.58= 127MHz 
-    ppm_length = BW/B#16.xx ppm
-    ppm_center = 4.7
-    min_bound = ppm_center - (ppm_length)/2
-    max_bound = ppm_center + (ppm_length)/2
-    ppm = np.linspace(min_bound, max_bound, sample_point)
-    ppm = ppm[::-1]#reverse
+    var_AWGN_db = rdm.randint(12,22)
+    ###########
+    #原本ㄉ
     
     ###Original####
     pos = np.where((ppm>=ppm.min()) & (ppm<=ppm.max()))
@@ -271,13 +296,7 @@ for steps in tqdm(range(N_specta)):
     '''
     
     #################Boarden linewith###############
-    '''
-    plt.figure(figsize=(15,10))
-    plt.subplot(211)
-    plt.title(f'Before boardening, linewidth: {measure_width_hz(crop_ppm, component_sum[pos])} Hz')
-    plt.plot(crop_ppm, component_sum[pos])
-    plt.xlim((4.2,0.5))
-    '''
+
     filted_tdata_ori = np.fft.ifft(component_sum)
     
     x_t = np.arange(0,len(filted_tdata_ori))
@@ -285,7 +304,7 @@ for steps in tqdm(range(N_specta)):
     #var_boarden_t2_list = [300,300,1000,1000]
     
     #var_boarden_t2 = var_boarden_t2_list[steps]
-    #var_boarden_t2 = 150
+    #var_boarden_t2 = 80
     exp_adop_filt = np.exp(-(x_t/var_boarden_t2))
     filted_tdata = filted_tdata_ori*exp_adop_filt
     #################Zero order correct###############    
@@ -306,7 +325,14 @@ for steps in tqdm(range(N_specta)):
     base_basis_set = np.zeros([len(unit_decode_basis_set),len(unit_decode_basis_set[0][pos])])
     base_basis_set = np.array([cont[pos] for i,cont in enumerate(unit_decode_basis_set)])
     
+    broaden_FWHM_nosnr = measure_width_hz(crop_ppm, crop_filted_sdata)
     '''
+    plt.figure(steps+1,figsize=(15,10))
+    plt.subplot(211)
+    plt.title(f'Before boardening, linewidth: {measure_width_hz(crop_ppm, component_sum[pos])} Hz')
+    plt.plot(crop_ppm, component_sum[pos])
+    plt.xlim((4.2,0.5))
+    
     plt.subplot(212)
     #plt.title('Boarden T2 = {}'.format(var_boarden_t2))
     plt.title(f'Boarden T2 = {var_boarden_t2}, linewidth:{measure_width_hz(crop_ppm, crop_filted_sdata)} Hz')
@@ -330,7 +356,7 @@ for steps in tqdm(range(N_specta)):
     #var_AWGN_db_list = [20,10,20,10]
     #var_AWGN_db = var_AWGN_db_list[steps]
     #steps = 0
-    #var_AWGN_db = 15
+    #var_AWGN_db = 12
     
     target_snr_db = var_AWGN_db
     # Calculate signal power and convert to dB 
@@ -345,7 +371,8 @@ for steps in tqdm(range(N_specta)):
     # Noise up the original signal
     y_volts = crop_filted_sdata + noise_volts
     add_noise_crop_filted_sdata = y_volts
-        
+    broaden_FWHM = measure_width_hz(crop_ppm, add_noise_crop_filted_sdata)
+    #print(f'boarden_FWHM = {boarden_FWHM} Hz, boarden_FWHM_nosnr = {boarden_FWHM_nosnr} Hz')
     '''
     in_mean = np.mean(add_noise_crop_filted_sdata.real)
     in_std = np.std(add_noise_crop_filted_sdata.real)
@@ -370,22 +397,22 @@ for steps in tqdm(range(N_specta)):
         plt.plot(crop_ppm,pure_metabo_basis)
         #plt.xlim((4.5,0.5))
         plt.xlim((4.2,0.5))
-        plt.ylim(0,0.4*10**8)
+        #plt.ylim(0,0.4*10**8)
         
         plt.subplot(3,1,2)
         plt.title('Gererated MM')
         plt.plot(crop_ppm,crop_MM)
         #plt.xlim((4.5,0.5))
         plt.xlim((4.2,0.5))
-        plt.ylim(0,0.4*10**8)
+        #plt.ylim(0,0.4*10**8)
         #plt.ylim(0,0.4*10**8)
         
         plt.subplot(3,1,3)
-        plt.title(f'Add artifacts: Broaden T2 = {var_boarden_t2} AWGN_db ={var_AWGN_db} ')
+        plt.title(f'Add artifacts: Broaden T2 = {var_boarden_t2} AWGN_db ={var_AWGN_db} linewidth:{broaden_FWHM} Hz NO_NOISE_FWHM={broaden_FWHM_nosnr} Hz')
         plt.plot(crop_ppm, add_noise_crop_filted_sdata)
         plt.xlim((4.2,0.5))
         #plt.xlim((4.5,0.5))
-        plt.ylim((0,0.4*10**8))
+        #plt.ylim((0,0.4*10**8))
         
         '''
         sav_filename = f'gen_{steps}.png'
@@ -394,12 +421,19 @@ for steps in tqdm(range(N_specta)):
         plt.savefig(sav_filename)#Why I can't save it into sub folder
         '''
     
-    np.savez(os.path.join(working_dir,'gen_folder', f'generate_basis_{steps}'), X=add_noise_crop_filted_sdata, Y=pure_metabo_basis, ppm = crop_ppm)
-    np.savez(os.path.join(working_dir,'gen_folder','other_parameters' ,f'other_parameters_{steps}'), var_MM_amp = var_MM_amp, var_boarden_t2 = var_boarden_t2, var_zero_shift= var_zero_shift, var_AWGN_db = var_AWGN_db)
-    brain_betabo_conc_table_df.to_pickle(os.path.join(working_dir,'gen_folder','brain_betabo_conc_table_df',f'brain_betabo_conc_table_df_{steps}'))
-    MM_table_df.to_pickle(os.path.join(working_dir,'gen_folder','MM_table_df',f'MM_table_df_{steps}'))    
+    # NO NORMALIZED _ less noise
+    np.savez(os.path.join(dump_folder_path, f'generate_basis_{steps}'), X=add_noise_crop_filted_sdata, Y=pure_metabo_basis, ppm = crop_ppm)
+    np.savez(os.path.join(other_parameters_path ,f'other_parameters_{steps}'), var_MM_amp = var_MM_amp, var_boarden_t2 = var_boarden_t2, var_zero_shift= var_zero_shift, var_AWGN_db = var_AWGN_db,broaden_FWHM_nosnr = broaden_FWHM_nosnr,broaden_FWHM = broaden_FWHM)
+    brain_betabo_conc_table_df.to_pickle(os.path.join(brain_betabo_conc_table_df_path,f'brain_betabo_conc_table_df_{steps}'))
+    MM_table_df.to_pickle(os.path.join(MM_table_df_path,f'MM_table_df_{steps}'))
+    
     if steps == 0:
         #np.savez(os.path.join(working_dir,'base_basis_set'),data = base_basis_set)
-        np.savez(os.path.join(working_dir,'42ppm_base_basis_set'),data = base_basis_set)
+        np.savez(os.path.join(working_dir,'42ppm_base_basis_set'),data = base_basis_set, ppm = crop_ppm)
     #base_basis_set
+
     print("Current steps: ", steps)
+
+#var_AU_set,var_MM_amp,var_AWGN_db
+#print('var_MM_amp_set: ',var_MM_amp_set)
+#t2 = 50#30,100,600 50 - 300
